@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>はーくん勉強アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- モード選択画面 -->
+    <div id="screen-menu" class="screen active">
+      <h1 class="app-title">はーくん<br>勉強アプリ</h1>
+      <div class="menu-buttons">
+        <button class="btn btn-pink" onclick="startComprehensive()">総合問題</button>
+        <button class="btn btn-blue" onclick="showGenreSelect()">ジャンル選択</button>
+        <button id="btn-resume" class="btn btn-green" onclick="resumeQuiz()" disabled>中断データから再開</button>
+        <button class="btn btn-orange" onclick="showResults()">実績</button>
+      </div>
+    </div>
+
+    <!-- 問題数選択画面 -->
+    <div id="screen-count" class="screen">
+      <h2 class="screen-title">何問やる？</h2>
+      <div class="menu-buttons">
+        <button class="btn btn-pink" onclick="startQuiz('comprehensive', 20)">20問</button>
+        <button class="btn btn-blue" onclick="startQuiz('comprehensive', 50)">50問</button>
+        <button class="btn btn-purple" onclick="startQuiz('comprehensive', 100)">100問</button>
+      </div>
+      <button class="btn-back" onclick="showScreen('screen-menu')">← もどる</button>
+    </div>
+
+    <!-- ジャンル選択画面 -->
+    <div id="screen-genre" class="screen">
+      <h2 class="screen-title">ジャンルを選んでね</h2>
+      <div class="menu-buttons">
+        <button class="btn btn-genre genre-law-harmful" onclick="startQuiz('law_harmful', 10)">法令（有害）</button>
+        <button class="btn btn-genre genre-health-harmful" onclick="startQuiz('health_harmful', 10)">衛生（有害）</button>
+        <button class="btn btn-genre genre-law-general" onclick="startQuiz('law_general', 10)">法令（一般）</button>
+        <button class="btn btn-genre genre-health-general" onclick="startQuiz('health_general', 10)">衛生（一般）</button>
+        <button class="btn btn-genre genre-physiology" onclick="startQuiz('physiology', 10)">労働生理</button>
+      </div>
+      <button class="btn-back" onclick="showScreen('screen-menu')">← もどる</button>
+    </div>
+
+    <!-- 問題画面 -->
+    <div id="screen-quiz" class="screen">
+      <div class="quiz-header">
+        <span id="quiz-genre" class="quiz-genre-label"></span>
+        <span id="quiz-progress" class="quiz-progress"></span>
+        <button class="btn-suspend" onclick="confirmSuspend()">中断</button>
+      </div>
+      <div class="quiz-body">
+        <div id="quiz-prev-mark" class="prev-mark"></div>
+        <p id="quiz-question" class="quiz-question"></p>
+        <div id="quiz-choices" class="quiz-choices"></div>
+      </div>
+      <!-- 回答後の表示 -->
+      <div id="quiz-result" class="quiz-result hidden">
+        <div id="quiz-result-mark" class="result-mark"></div>
+        <p id="quiz-correct-answer" class="correct-answer"></p>
+        <div id="quiz-explanation" class="explanation"></div>
+        <button id="btn-next" class="btn btn-next" onclick="nextQuestion()">次へ</button>
+      </div>
+    </div>
+
+    <!-- 中断確認ダイアログ -->
+    <div id="dialog-suspend" class="dialog-overlay hidden">
+      <div class="dialog-box">
+        <p>中断しますか？<br>データは保存されます。</p>
+        <div class="dialog-buttons">
+          <button class="btn btn-gray" onclick="closeSuspendDialog()">キャンセル</button>
+          <button class="btn btn-pink" onclick="suspendQuiz()">中断する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 結果画面 -->
+    <div id="screen-result" class="screen">
+      <h2 class="screen-title">結果発表！</h2>
+      <div id="result-score" class="result-score"></div>
+      <div id="result-percentage" class="result-percentage"></div>
+      <div id="result-genre-breakdown" class="genre-breakdown"></div>
+      <div class="menu-buttons">
+        <button class="btn btn-blue" onclick="showReviewA()">振り返り</button>
+        <button class="btn btn-pink" onclick="showScreen('screen-menu')">モード選択にもどる</button>
+      </div>
+    </div>
+
+    <!-- 振り返りA画面 -->
+    <div id="screen-review-a" class="screen">
+      <h2 class="screen-title">振り返り</h2>
+      <div id="review-a-list" class="review-list"></div>
+      <button class="btn-back" onclick="showScreen('screen-result')">← 結果にもどる</button>
+    </div>
+
+  </div>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
