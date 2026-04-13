@@ -11,12 +11,13 @@ const GENRES = {
 
 // ========== 状態管理 ==========
 let currentQuiz = {
-  mode: '',          // 'comprehensive', 'genre', 'review'
-  genre: '',         // ジャンル選択時のジャンルID
-  questions: [],     // 出題する問題の配列
-  currentIndex: 0,   // 現在の問題番号
-  answers: [],       // 回答記録 [{questionId, selected, correct, isCorrect}]
-  totalCount: 0      // 問題数
+  mode: '',
+  genre: '',
+  questions: [],
+  currentIndex: 0,
+  answers: [],
+  totalCount: 0,
+  selectedChoice: null  // 選択中の選択肢
 };
 
 // ========== 初期化 ==========
@@ -54,7 +55,6 @@ function startQuiz(genreOrMode, count) {
   let questions = [];
 
   if (genreOrMode === 'comprehensive') {
-    // 総合問題：各ジャンルから均等に出題
     const perGenre = count / 5;
     const genreKeys = Object.keys(GENRES);
     genreKeys.forEach(key => {
@@ -65,18 +65,17 @@ function startQuiz(genreOrMode, count) {
     currentQuiz.mode = 'comprehensive';
     currentQuiz.genre = '';
   } else {
-    // ジャンル選択：指定ジャンルから出題
     const genreQuestions = QUESTIONS.filter(q => q.genre === genreOrMode);
     questions = shuffleArray([...genreQuestions]).slice(0, count);
     currentQuiz.mode = 'genre';
     currentQuiz.genre = genreOrMode;
   }
 
-  // シャッフルして出題
   currentQuiz.questions = shuffleArray(questions);
   currentQuiz.currentIndex = 0;
   currentQuiz.answers = [];
   currentQuiz.totalCount = currentQuiz.questions.length;
+  currentQuiz.selectedChoice = null;
 
   showQuestion();
 }
@@ -87,6 +86,9 @@ function showQuestion() {
 
   const q = currentQuiz.questions[currentQuiz.currentIndex];
   const genreInfo = GENRES[q.genre];
+
+  // 選択状態をリセット
+  currentQuiz.selectedChoice = null;
 
   // ヘッダー
   document.getElementById('quiz-genre').textContent = genreInfo.name;
@@ -114,16 +116,42 @@ function showQuestion() {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
     btn.textContent = `(${index + 1}) ${choice}`;
-    btn.onclick = () => selectAnswer(index);
+    btn.onclick = () => selectChoice(index);
     choicesEl.appendChild(btn);
   });
+
+  // 回答ボタンを無効状態で表示
+  const submitBtn = document.getElementById('btn-submit');
+  submitBtn.disabled = true;
+  submitBtn.classList.remove('hidden');
 
   // 回答後エリアを隠す
   document.getElementById('quiz-result').classList.add('hidden');
 }
 
-// ========== 回答選択 ==========
-function selectAnswer(selectedIndex) {
+// ========== 選択肢を選ぶ（まだ回答確定しない） ==========
+function selectChoice(index) {
+  currentQuiz.selectedChoice = index;
+
+  // 選択肢のスタイルを更新
+  const choiceBtns = document.querySelectorAll('.choice-btn');
+  choiceBtns.forEach((btn, i) => {
+    if (i === index) {
+      btn.classList.add('selected');
+    } else {
+      btn.classList.remove('selected');
+    }
+  });
+
+  // 回答ボタンを有効にする
+  document.getElementById('btn-submit').disabled = false;
+}
+
+// ========== 回答を確定する ==========
+function submitAnswer() {
+  const selectedIndex = currentQuiz.selectedChoice;
+  if (selectedIndex === null) return;
+
   const q = currentQuiz.questions[currentQuiz.currentIndex];
   const isCorrect = selectedIndex === q.answer;
 
@@ -135,10 +163,14 @@ function selectAnswer(selectedIndex) {
     isCorrect: isCorrect
   });
 
-  // 選択肢のスタイル変更
+  // 回答ボタンを隠す
+  document.getElementById('btn-submit').classList.add('hidden');
+
+  // 選択肢のスタイル変更（正誤表示）
   const choiceBtns = document.querySelectorAll('.choice-btn');
   choiceBtns.forEach((btn, index) => {
     btn.classList.add('disabled');
+    btn.classList.remove('selected');
     if (index === selectedIndex && isCorrect) {
       btn.classList.add('selected-correct');
     } else if (index === selectedIndex && !isCorrect) {
@@ -193,7 +225,6 @@ function nextQuestion() {
 
 // ========== 結果画面 ==========
 function showResultScreen() {
-  // 中断データがあれば削除
   localStorage.removeItem('suspendedQuiz');
   updateResumeButton();
 
@@ -201,12 +232,10 @@ function showResultScreen() {
   const total = currentQuiz.totalCount;
   const percentage = Math.round((correctCount / total) * 100);
 
-  // スコア表示
   document.getElementById('result-score').textContent =
     `${correctCount} / ${total} 正解！`;
   document.getElementById('result-percentage').textContent = `${percentage}%`;
 
-  // ジャンル別内訳（総合問題のとき）
   const breakdownEl = document.getElementById('result-genre-breakdown');
   if (currentQuiz.mode === 'comprehensive') {
     let html = '<h3>ジャンル別</h3>';
@@ -231,9 +260,7 @@ function showResultScreen() {
     breakdownEl.style.display = 'none';
   }
 
-  // 今回の結果を累計に保存
   saveSessionResult(correctCount, total);
-
   showScreen('screen-result');
 }
 
@@ -310,6 +337,7 @@ function resumeQuiz() {
   currentQuiz.currentIndex = data.currentIndex;
   currentQuiz.answers = data.answers;
   currentQuiz.totalCount = data.totalCount;
+  currentQuiz.selectedChoice = null;
 
   showQuestion();
 }
