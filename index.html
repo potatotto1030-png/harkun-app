@@ -78,6 +78,17 @@
       </div>
     </div>
 
+    <!-- リセット確認ダイアログ -->
+    <div id="dialog-reset" class="dialog-overlay hidden">
+      <div class="dialog-box">
+        <p>本当にリセットしますか？<br>すべての実績データが<br>削除されます。</p>
+        <div class="dialog-buttons">
+          <button class="btn btn-gray" onclick="closeResetDialog()">キャンセル</button>
+          <button class="btn btn-pink" onclick="executeReset()">リセットする</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 結果画面 -->
     <div id="screen-result" class="screen">
       <h2 class="screen-title">結果発表！</h2>
@@ -103,6 +114,7 @@
       <p style="text-align: center; color: #777; margin-bottom: 30px;">ここに実績が表示されます（準備中）</p>
       <div class="menu-buttons">
         <button class="btn btn-pink" onclick="showScreen('screen-menu')">モード選択にもどる</button>
+        <button class="btn btn-reset" onclick="confirmReset()">データをリセット</button>
       </div>
     </div>
 
