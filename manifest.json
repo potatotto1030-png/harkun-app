@@ -1,0 +1,22 @@
+{
+  "name": "はーくん勉強アプリ",
+  "short_name": "はーくん勉強",
+  "description": "第一種衛生管理者の勉強アプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffecd2",
+  "theme_color": "#ff6b6b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
