@@ -17,7 +17,7 @@ let currentQuiz = {
   currentIndex: 0,
   answers: [],
   totalCount: 0,
-  selectedChoice: null  // 選択中の選択肢
+  selectedChoice: null
 };
 
 // ========== 初期化 ==========
@@ -87,7 +87,6 @@ function showQuestion() {
   const q = currentQuiz.questions[currentQuiz.currentIndex];
   const genreInfo = GENRES[q.genre];
 
-  // 選択状態をリセット
   currentQuiz.selectedChoice = null;
 
   // ヘッダー
@@ -129,11 +128,10 @@ function showQuestion() {
   document.getElementById('quiz-result').classList.add('hidden');
 }
 
-// ========== 選択肢を選ぶ（まだ回答確定しない） ==========
+// ========== 選択肢を選ぶ ==========
 function selectChoice(index) {
   currentQuiz.selectedChoice = index;
 
-  // 選択肢のスタイルを更新
   const choiceBtns = document.querySelectorAll('.choice-btn');
   choiceBtns.forEach((btn, i) => {
     if (i === index) {
@@ -143,7 +141,6 @@ function selectChoice(index) {
     }
   });
 
-  // 回答ボタンを有効にする
   document.getElementById('btn-submit').disabled = false;
 }
 
@@ -155,7 +152,6 @@ function submitAnswer() {
   const q = currentQuiz.questions[currentQuiz.currentIndex];
   const isCorrect = selectedIndex === q.answer;
 
-  // 回答を記録
   currentQuiz.answers.push({
     questionId: q.id,
     selected: selectedIndex,
@@ -163,10 +159,8 @@ function submitAnswer() {
     isCorrect: isCorrect
   });
 
-  // 回答ボタンを隠す
   document.getElementById('btn-submit').classList.add('hidden');
 
-  // 選択肢のスタイル変更（正誤表示）
   const choiceBtns = document.querySelectorAll('.choice-btn');
   choiceBtns.forEach((btn, index) => {
     btn.classList.add('disabled');
@@ -181,7 +175,6 @@ function submitAnswer() {
     }
   });
 
-  // 正誤マーク表示
   const resultMark = document.getElementById('quiz-result-mark');
   if (isCorrect) {
     resultMark.textContent = '正解！';
@@ -191,14 +184,11 @@ function submitAnswer() {
     resultMark.className = 'result-mark wrong';
   }
 
-  // 正解表示
   document.getElementById('quiz-correct-answer').textContent =
     `正解：(${q.answer + 1}) ${q.choices[q.answer]}`;
 
-  // 解説
   document.getElementById('quiz-explanation').textContent = q.explanation;
 
-  // 次へボタン
   const nextBtn = document.getElementById('btn-next');
   if (currentQuiz.currentIndex >= currentQuiz.totalCount - 1) {
     nextBtn.textContent = '結果を見る';
@@ -206,10 +196,8 @@ function submitAnswer() {
     nextBtn.textContent = '次へ';
   }
 
-  // 回答後エリア表示
   document.getElementById('quiz-result').classList.remove('hidden');
 
-  // 履歴を保存
   saveQuestionHistory(q.id, isCorrect);
 }
 
@@ -340,6 +328,24 @@ function resumeQuiz() {
   currentQuiz.selectedChoice = null;
 
   showQuestion();
+}
+
+// ========== リセット機能 ==========
+function confirmReset() {
+  document.getElementById('dialog-reset').classList.remove('hidden');
+}
+
+function closeResetDialog() {
+  document.getElementById('dialog-reset').classList.add('hidden');
+}
+
+function executeReset() {
+  localStorage.removeItem('questionHistory');
+  localStorage.removeItem('sessionResults');
+  localStorage.removeItem('suspendedQuiz');
+  updateResumeButton();
+  closeResetDialog();
+  showScreen('screen-menu');
 }
 
 // ========== 問題ごとの履歴保存 ==========
