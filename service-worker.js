@@ -1,4 +1,4 @@
-const CACHE_NAME = 'harkun-app-v1';
+const CACHE_NAME = 'harkun-app-v2';
 const CACHE_FILES = [
   './',
   './index.html',
