@@ -2,11 +2,11 @@
 
 // ========== ジャンル定義 ==========
 const GENRES = {
-  law_harmful: { name: '法令（有害）', fullName: '関係法令（有害業務に係るもの）' },
-  health_harmful: { name: '衛生（有害）', fullName: '労働衛生（有害業務に係るもの）' },
-  law_general: { name: '法令（一般）', fullName: '関係法令（有害業務に係るもの以外のもの）' },
-  health_general: { name: '衛生（一般）', fullName: '労働衛生（有害業務に係るもの以外のもの）' },
-  physiology: { name: '労働生理', fullName: '労働生理' }
+  law_harmful: { name: '法令（有害）', fullName: '関係法令（有害業務に係るもの）', color: '#ee5a24' },
+  health_harmful: { name: '衛生（有害）', fullName: '労働衛生（有害業務に係るもの）', color: '#f5af19' },
+  law_general: { name: '法令（一般）', fullName: '関係法令（有害業務に係るもの以外のもの）', color: '#2980b9' },
+  health_general: { name: '衛生（一般）', fullName: '労働衛生（有害業務に係るもの以外のもの）', color: '#27ae60' },
+  physiology: { name: '労働生理', fullName: '労働生理', color: '#8e44ad' }
 };
 
 // ========== 状態管理 ==========
@@ -19,6 +19,8 @@ let currentQuiz = {
   totalCount: 0,
   selectedChoice: null
 };
+
+let reviewBFilter = 'all';
 
 // ========== 初期化 ==========
 function init() {
@@ -38,10 +40,6 @@ function startComprehensive() {
 
 function showGenreSelect() {
   showScreen('screen-genre');
-}
-
-function showResults() {
-  showScreen('screen-stats');
 }
 
 // ========== 中断ボタンの状態更新 ==========
@@ -89,12 +87,10 @@ function showQuestion() {
 
   currentQuiz.selectedChoice = null;
 
-  // ヘッダー
   document.getElementById('quiz-genre').textContent = genreInfo.name;
   document.getElementById('quiz-progress').textContent =
     `${currentQuiz.currentIndex + 1} / ${currentQuiz.totalCount}`;
 
-  // 前回の正誤マーク
   const prevMark = getPrevMark(q.id);
   const markEl = document.getElementById('quiz-prev-mark');
   if (prevMark === 'good') {
@@ -105,10 +101,8 @@ function showQuestion() {
     markEl.innerHTML = '<span class="mark-new">NEW</span>';
   }
 
-  // 問題文
   document.getElementById('quiz-question').textContent = q.question;
 
-  // 選択肢
   const choicesEl = document.getElementById('quiz-choices');
   choicesEl.innerHTML = '';
   q.choices.forEach((choice, index) => {
@@ -119,12 +113,10 @@ function showQuestion() {
     choicesEl.appendChild(btn);
   });
 
-  // 回答ボタンを無効状態で表示
   const submitBtn = document.getElementById('btn-submit');
   submitBtn.disabled = true;
   submitBtn.classList.remove('hidden');
 
-  // 回答後エリアを隠す
   document.getElementById('quiz-result').classList.add('hidden');
 }
 
@@ -287,6 +279,214 @@ function showReviewA() {
 
 function toggleReviewItem(el) {
   el.classList.toggle('open');
+}
+
+// ========== 実績画面 ==========
+function showResults() {
+  const history = JSON.parse(localStorage.getItem('questionHistory') || '{}');
+  const contentEl = document.getElementById('stats-content');
+
+  const hasData = Object.keys(history).length > 0;
+
+  // 復習モードボタンの状態
+  document.getElementById('btn-review-mode').disabled = !hasData;
+
+  if (!hasData) {
+    contentEl.innerHTML = '<div class="stats-no-data">まだデータがありません。<br>問題を解いてみよう！</div>';
+    showScreen('screen-stats');
+    return;
+  }
+
+  // 全体の正答率
+  let totalAttempts = 0;
+  let totalCorrect = 0;
+  Object.values(history).forEach(h => {
+    totalAttempts += h.attempts;
+    totalCorrect += h.correct;
+  });
+  const overallPercent = Math.round((totalCorrect / totalAttempts) * 100);
+
+  // ジャンル別の正答率
+  let genreHtml = '';
+  Object.keys(GENRES).forEach(key => {
+    const genreQuestionIds = QUESTIONS.filter(q => q.genre === key).map(q => q.id);
+    let gAttempts = 0;
+    let gCorrect = 0;
+    genreQuestionIds.forEach(id => {
+      if (history[id]) {
+        gAttempts += history[id].attempts;
+        gCorrect += history[id].correct;
+      }
+    });
+
+    let gPercent = 0;
+    if (gAttempts > 0) {
+      gPercent = Math.round((gCorrect / gAttempts) * 100);
+    }
+
+    genreHtml += `
+      <div class="stats-genre-row">
+        <span class="stats-genre-name">${GENRES[key].name}</span>
+        <div class="stats-genre-bar-wrap">
+          <div class="stats-genre-bar">
+            <div class="stats-genre-bar-fill" style="width: ${gPercent}%; background: ${GENRES[key].color};"></div>
+          </div>
+          <span class="stats-genre-percent">${gAttempts > 0 ? gPercent + '%' : '---'}</span>
+        </div>
+      </div>`;
+  });
+
+  contentEl.innerHTML = `
+    <div class="stats-card">
+      <h3>総合正答率</h3>
+      <div class="stats-overall">
+        <div class="stats-overall-number">${overallPercent}%</div>
+        <div class="stats-overall-label">${totalCorrect} / ${totalAttempts} 回正解</div>
+      </div>
+    </div>
+    <div class="stats-card">
+      <h3>ジャンル別正答率</h3>
+      ${genreHtml}
+    </div>`;
+
+  showScreen('screen-stats');
+}
+
+// ========== 振り返りB ==========
+function showReviewB() {
+  reviewBFilter = 'all';
+  document.getElementById('review-b-search').value = '';
+
+  // フィルターボタンをリセット
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.genre === 'all') btn.classList.add('active');
+  });
+
+  renderReviewB();
+  showScreen('screen-review-b');
+}
+
+function setGenreFilter(genre) {
+  reviewBFilter = genre;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.genre === genre) btn.classList.add('active');
+  });
+  renderReviewB();
+}
+
+function filterReviewB() {
+  renderReviewB();
+}
+
+function renderReviewB() {
+  const history = JSON.parse(localStorage.getItem('questionHistory') || '{}');
+  const searchText = document.getElementById('review-b-search').value.toLowerCase();
+  const listEl = document.getElementById('review-b-list');
+
+  let html = '';
+  const genreOrder = Object.keys(GENRES);
+
+  genreOrder.forEach(genreKey => {
+    if (reviewBFilter !== 'all' && reviewBFilter !== genreKey) return;
+
+    const genreQuestions = QUESTIONS.filter(q => {
+      if (q.genre !== genreKey) return false;
+      if (searchText && !q.question.toLowerCase().includes(searchText) &&
+          !q.explanation.toLowerCase().includes(searchText)) return false;
+      return true;
+    });
+
+    if (genreQuestions.length === 0) return;
+
+    html += `<div class="review-b-genre-header">${GENRES[genreKey].name}</div>`;
+
+    genreQuestions.forEach(q => {
+      const h = history[q.id];
+      let statsText = '未回答';
+      let markIcon = '📝';
+
+      if (h) {
+        const percent = Math.round((h.correct / h.attempts) * 100);
+        statsText = `正答率 ${percent}%（${h.correct}/${h.attempts}回）`;
+        if (h.lastCorrect) {
+          markIcon = '👍';
+        } else {
+          markIcon = '⚠️';
+        }
+      }
+
+      html += `
+        <div class="review-item" onclick="toggleReviewItem(this)">
+          <div class="review-item-header">
+            <span class="review-item-mark">${markIcon}</span>
+            <span class="review-item-question">${q.question}</span>
+            <span class="review-item-toggle">▼</span>
+          </div>
+          <div class="review-item-body">
+            <div class="review-b-stats">${statsText}</div>
+            <div class="review-explanation">
+              <p><strong>正解：</strong>(${q.answer + 1}) ${q.choices[q.answer]}</p>
+              <p style="margin-top:8px;"><strong>解説：</strong>${q.explanation}</p>
+            </div>
+          </div>
+        </div>`;
+    });
+  });
+
+  if (!html) {
+    html = '<div class="stats-no-data">該当する問題がありません</div>';
+  }
+
+  listEl.innerHTML = html;
+}
+
+// ========== 復習モード ==========
+function startReviewMode() {
+  const history = JSON.parse(localStorage.getItem('questionHistory') || '{}');
+
+  // 全問題にスコアをつける
+  let scoredQuestions = [];
+
+  QUESTIONS.forEach(q => {
+    const h = history[q.id];
+    if (!h) return; // 未回答の問題は除外
+
+    const percent = (h.correct / h.attempts) * 100;
+    const hadWrong = h.attempts > h.correct; // 過去に不正解がある
+
+    scoredQuestions.push({
+      question: q,
+      percent: percent,
+      hadWrong: hadWrong
+    });
+  });
+
+  // ステップ1: 不正解あり + 正答率50%以下を優先
+  // ステップ2: 足りなければ正答率が低い順に追加
+  scoredQuestions.sort((a, b) => {
+    // 不正解あり＋50%以下を最優先
+    const aPriority = (a.hadWrong || a.percent <= 50) ? 0 : 1;
+    const bPriority = (b.hadWrong || b.percent <= 50) ? 0 : 1;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    // 同じ優先度なら正答率が低い順
+    return a.percent - b.percent;
+  });
+
+  const reviewQuestions = scoredQuestions.slice(0, 10).map(sq => sq.question);
+
+  if (reviewQuestions.length === 0) return;
+
+  currentQuiz.mode = 'review';
+  currentQuiz.genre = '';
+  currentQuiz.questions = shuffleArray(reviewQuestions);
+  currentQuiz.currentIndex = 0;
+  currentQuiz.answers = [];
+  currentQuiz.totalCount = currentQuiz.questions.length;
+  currentQuiz.selectedChoice = null;
+
+  showQuestion();
 }
 
 // ========== 中断機能 ==========
