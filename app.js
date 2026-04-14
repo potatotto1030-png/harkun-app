@@ -17,7 +17,8 @@ let currentQuiz = {
   currentIndex: 0,
   answers: [],
   totalCount: 0,
-  selectedChoice: null
+  selectedChoice: null,
+  shuffledChoices: []  // シャッフルされた選択肢の元のインデックス
 };
 
 let reviewBFilter = 'all';
@@ -74,6 +75,7 @@ function startQuiz(genreOrMode, count) {
   currentQuiz.answers = [];
   currentQuiz.totalCount = currentQuiz.questions.length;
   currentQuiz.selectedChoice = null;
+  currentQuiz.shuffledChoices = [];
 
   showQuestion();
 }
@@ -103,13 +105,18 @@ function showQuestion() {
 
   document.getElementById('quiz-question').textContent = q.question;
 
+  // 選択肢をシャッフル
+  // 元のインデックスの配列 [0,1,2,3,4] をシャッフルする
+  const originalIndices = q.choices.map((_, i) => i);
+  currentQuiz.shuffledChoices = shuffleArray(originalIndices);
+
   const choicesEl = document.getElementById('quiz-choices');
   choicesEl.innerHTML = '';
-  q.choices.forEach((choice, index) => {
+  currentQuiz.shuffledChoices.forEach((originalIndex, displayIndex) => {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
-    btn.textContent = `(${index + 1}) ${choice}`;
-    btn.onclick = () => selectChoice(index);
+    btn.textContent = `(${displayIndex + 1}) ${q.choices[originalIndex]}`;
+    btn.onclick = () => selectChoice(displayIndex);
     choicesEl.appendChild(btn);
   });
 
@@ -138,15 +145,20 @@ function selectChoice(index) {
 
 // ========== 回答を確定する ==========
 function submitAnswer() {
-  const selectedIndex = currentQuiz.selectedChoice;
-  if (selectedIndex === null) return;
+  const displayIndex = currentQuiz.selectedChoice;
+  if (displayIndex === null) return;
 
   const q = currentQuiz.questions[currentQuiz.currentIndex];
-  const isCorrect = selectedIndex === q.answer;
+  // 表示上の選択 → 元のインデックスに変換
+  const selectedOriginal = currentQuiz.shuffledChoices[displayIndex];
+  const isCorrect = selectedOriginal === q.answer;
+
+  // 正解の表示位置を探す
+  const correctDisplayIndex = currentQuiz.shuffledChoices.indexOf(q.answer);
 
   currentQuiz.answers.push({
     questionId: q.id,
-    selected: selectedIndex,
+    selected: selectedOriginal,
     correct: q.answer,
     isCorrect: isCorrect
   });
@@ -157,12 +169,12 @@ function submitAnswer() {
   choiceBtns.forEach((btn, index) => {
     btn.classList.add('disabled');
     btn.classList.remove('selected');
-    if (index === selectedIndex && isCorrect) {
+    if (index === displayIndex && isCorrect) {
       btn.classList.add('selected-correct');
-    } else if (index === selectedIndex && !isCorrect) {
+    } else if (index === displayIndex && !isCorrect) {
       btn.classList.add('selected-wrong');
     }
-    if (index === q.answer && !isCorrect) {
+    if (index === correctDisplayIndex && !isCorrect) {
       btn.classList.add('show-correct');
     }
   });
@@ -177,7 +189,7 @@ function submitAnswer() {
   }
 
   document.getElementById('quiz-correct-answer').textContent =
-    `正解：(${q.answer + 1}) ${q.choices[q.answer]}`;
+    `正解：${q.choices[q.answer]}`;
 
   document.getElementById('quiz-explanation').textContent = q.explanation;
 
@@ -263,8 +275,8 @@ function showReviewA() {
         </div>
         <div class="review-item-body">
           <div class="review-answer-info">
-            <p><strong>あなたの回答：</strong>(${answer.selected + 1}) ${q.choices[answer.selected]}</p>
-            <p><strong>正解：</strong>(${q.answer + 1}) ${q.choices[q.answer]}</p>
+            <p><strong>あなたの回答：</strong>${q.choices[answer.selected]}</p>
+            <p><strong>正解：</strong>${q.choices[q.answer]}</p>
           </div>
           <div class="review-explanation">
             <p><strong>解説：</strong>${q.explanation}</p>
@@ -288,7 +300,6 @@ function showResults() {
 
   const hasData = Object.keys(history).length > 0;
 
-  // 復習モードボタンの状態
   document.getElementById('btn-review-mode').disabled = !hasData;
 
   if (!hasData) {
@@ -297,7 +308,6 @@ function showResults() {
     return;
   }
 
-  // 全体の正答率
   let totalAttempts = 0;
   let totalCorrect = 0;
   Object.values(history).forEach(h => {
@@ -306,7 +316,6 @@ function showResults() {
   });
   const overallPercent = Math.round((totalCorrect / totalAttempts) * 100);
 
-  // ジャンル別の正答率
   let genreHtml = '';
   Object.keys(GENRES).forEach(key => {
     const genreQuestionIds = QUESTIONS.filter(q => q.genre === key).map(q => q.id);
@@ -357,7 +366,6 @@ function showReviewB() {
   reviewBFilter = 'all';
   document.getElementById('review-b-search').value = '';
 
-  // フィルターボタンをリセット
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.classList.remove('active');
     if (btn.dataset.genre === 'all') btn.classList.add('active');
@@ -427,7 +435,7 @@ function renderReviewB() {
           <div class="review-item-body">
             <div class="review-b-stats">${statsText}</div>
             <div class="review-explanation">
-              <p><strong>正解：</strong>(${q.answer + 1}) ${q.choices[q.answer]}</p>
+              <p><strong>正解：</strong>${q.choices[q.answer]}</p>
               <p style="margin-top:8px;"><strong>解説：</strong>${q.explanation}</p>
             </div>
           </div>
@@ -446,15 +454,14 @@ function renderReviewB() {
 function startReviewMode() {
   const history = JSON.parse(localStorage.getItem('questionHistory') || '{}');
 
-  // 全問題にスコアをつける
   let scoredQuestions = [];
 
   QUESTIONS.forEach(q => {
     const h = history[q.id];
-    if (!h) return; // 未回答の問題は除外
+    if (!h) return;
 
     const percent = (h.correct / h.attempts) * 100;
-    const hadWrong = h.attempts > h.correct; // 過去に不正解がある
+    const hadWrong = h.attempts > h.correct;
 
     scoredQuestions.push({
       question: q,
@@ -463,14 +470,10 @@ function startReviewMode() {
     });
   });
 
-  // ステップ1: 不正解あり + 正答率50%以下を優先
-  // ステップ2: 足りなければ正答率が低い順に追加
   scoredQuestions.sort((a, b) => {
-    // 不正解あり＋50%以下を最優先
     const aPriority = (a.hadWrong || a.percent <= 50) ? 0 : 1;
     const bPriority = (b.hadWrong || b.percent <= 50) ? 0 : 1;
     if (aPriority !== bPriority) return aPriority - bPriority;
-    // 同じ優先度なら正答率が低い順
     return a.percent - b.percent;
   });
 
@@ -485,6 +488,7 @@ function startReviewMode() {
   currentQuiz.answers = [];
   currentQuiz.totalCount = currentQuiz.questions.length;
   currentQuiz.selectedChoice = null;
+  currentQuiz.shuffledChoices = [];
 
   showQuestion();
 }
@@ -526,6 +530,7 @@ function resumeQuiz() {
   currentQuiz.answers = data.answers;
   currentQuiz.totalCount = data.totalCount;
   currentQuiz.selectedChoice = null;
+  currentQuiz.shuffledChoices = [];
 
   showQuestion();
 }
