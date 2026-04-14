@@ -56,9 +56,7 @@
         <p id="quiz-question" class="quiz-question"></p>
         <div id="quiz-choices" class="quiz-choices"></div>
       </div>
-      <!-- 回答ボタン -->
       <button id="btn-submit" class="btn btn-submit" onclick="submitAnswer()" disabled>回答する</button>
-      <!-- 回答後の表示 -->
       <div id="quiz-result" class="quiz-result hidden">
         <div id="quiz-result-mark" class="result-mark"></div>
         <p id="quiz-correct-answer" class="correct-answer"></p>
@@ -111,11 +109,31 @@
     <!-- 実績画面 -->
     <div id="screen-stats" class="screen">
       <h2 class="screen-title">実績</h2>
-      <p style="text-align: center; color: #777; margin-bottom: 30px;">ここに実績が表示されます（準備中）</p>
+      <div id="stats-content" class="stats-content"></div>
       <div class="menu-buttons">
+        <button class="btn btn-blue" onclick="showReviewB()">全問題を見る</button>
+        <button id="btn-review-mode" class="btn btn-green" onclick="startReviewMode()" disabled>復習モード</button>
         <button class="btn btn-pink" onclick="showScreen('screen-menu')">モード選択にもどる</button>
         <button class="btn btn-reset" onclick="confirmReset()">データをリセット</button>
       </div>
+    </div>
+
+    <!-- 振り返りB画面 -->
+    <div id="screen-review-b" class="screen">
+      <h2 class="screen-title">全問題一覧</h2>
+      <div class="review-b-controls">
+        <input type="text" id="review-b-search" class="search-input" placeholder="キーワードで検索..." oninput="filterReviewB()">
+        <div class="genre-filter">
+          <button class="filter-btn active" data-genre="all" onclick="setGenreFilter('all')">全て</button>
+          <button class="filter-btn" data-genre="law_harmful" onclick="setGenreFilter('law_harmful')">法令(有害)</button>
+          <button class="filter-btn" data-genre="health_harmful" onclick="setGenreFilter('health_harmful')">衛生(有害)</button>
+          <button class="filter-btn" data-genre="law_general" onclick="setGenreFilter('law_general')">法令(一般)</button>
+          <button class="filter-btn" data-genre="health_general" onclick="setGenreFilter('health_general')">衛生(一般)</button>
+          <button class="filter-btn" data-genre="physiology" onclick="setGenreFilter('physiology')">労働生理</button>
+        </div>
+      </div>
+      <div id="review-b-list" class="review-list"></div>
+      <button class="btn-back" onclick="showScreen('screen-stats')">← 実績にもどる</button>
     </div>
 
   </div>
